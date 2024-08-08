@@ -1,19 +1,19 @@
 use std::fmt::Display;
 
-use crate::{SizePriorityList, TimePriorityList};
+use crate::{FifoList, QuantityPriorityList};
 
 /// Order list of orders of the same price, either sorted by time or size
 #[derive(Debug, Clone, PartialEq)]
 pub enum OrderList {
     // Earliest first
-    Time(TimePriorityList),
+    Time(FifoList),
     // Largest first
-    Size(SizePriorityList),
+    Quantity(QuantityPriorityList),
 }
 
 impl Default for OrderList {
     fn default() -> Self {
-        OrderList::Time(TimePriorityList::new())
+        OrderList::Time(FifoList::new())
     }
 }
 
@@ -25,9 +25,9 @@ impl Display for OrderList {
                     writeln!(f, "Time Priority Order: {:?}", order)?;
                 }
             }
-            OrderList::Size(ref orders) => {
+            OrderList::Quantity(ref orders) => {
                 for order in orders {
-                    writeln!(f, "Size Priority Order: {:?}", order)?;
+                    writeln!(f, "Quantity Priority Order: {:?}", order)?;
                 }
             }
         }
@@ -37,17 +37,17 @@ impl Display for OrderList {
 
 impl OrderList {
     pub fn new_time_priority() -> Self {
-        Self::Time(TimePriorityList::new())
+        Self::Time(FifoList::new())
     }
 
-    pub fn new_size_priority() -> Self {
-        Self::Size(SizePriorityList::new())
+    pub fn new_quantity_priority() -> Self {
+        Self::Quantity(QuantityPriorityList::new())
     }
 
     pub fn is_empty(&self) -> bool {
         match self {
             OrderList::Time(ref orders) => orders.is_empty(),
-            OrderList::Size(ref orders) => orders.is_empty(),
+            OrderList::Quantity(ref orders) => orders.is_empty(),
         }
     }
 }
