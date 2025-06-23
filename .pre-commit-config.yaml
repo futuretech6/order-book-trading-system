@@ -15,7 +15,15 @@ repos:
     hooks:
       - id: cargo-check
       - id: clippy
-        args: ["--all-targets", "--", "--deny", "warnings"]
+        args:
+          - "--fix"
+          - "--allow-dirty"
+          - "--allow-staged"
+          - "--all"
+          - "--all-targets"
+          - "--"
+          - "--deny"
+          - "warnings"
 
   - repo: https://github.com/futuretech6/pre-commit-rust-nightly
     rev: v1.1
