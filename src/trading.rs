@@ -56,8 +56,11 @@ impl TradingSystem {
 
         // add the remaining orders to the ask_order_book
         if remaining_quantity > 0 {
+            ask_order.inform_execution(Some(ask_order.quantity - remaining_quantity));
             let order_list_at_price = self.ask_orders.entry(ask_order.price).or_default();
             order_list_at_price.push_new(*ask_order);
+        } else {
+            ask_order.inform_execution(None);
         }
     }
 
@@ -78,8 +81,11 @@ impl TradingSystem {
 
         // add the remaining orders to the bid_order_book
         if remaining_quantity > 0 {
+            bid_order.inform_execution(Some(bid_order.quantity - remaining_quantity));
             let order_list_at_price = self.bid_orders.entry(bid_order.price).or_default();
             order_list_at_price.push_new(*bid_order);
+        } else {
+            bid_order.inform_execution(None);
         }
     }
 
@@ -87,9 +93,11 @@ impl TradingSystem {
         while let Some(oldest_order) = order_list.oldest_mut() {
             if *quantity >= oldest_order.quantity {
                 *quantity -= oldest_order.quantity;
+                oldest_order.inform_execution(None);
                 order_list.pop_oldest();
             } else {
                 // no quantity remaining
+                oldest_order.inform_execution(Some(*quantity));
                 oldest_order.quantity -= *quantity;
                 *quantity = 0;
                 break;
