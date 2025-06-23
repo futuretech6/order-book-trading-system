@@ -21,8 +21,11 @@ fn test_buy_not_enough_to_consume_first() {
         quantity: 3,
         owner: 3,
     };
+    println!("[*] Adding order: {}", order1);
     trading_system.handle_order(&order1);
+    println!("[*] Adding order: {}", order2);
     trading_system.handle_order(&order2);
+    println!("[*] Adding order: {}", order3);
     trading_system.handle_order(&order3);
 
     let orders = trading_system.ask_orders.get(&100).unwrap();
@@ -55,8 +58,11 @@ fn test_buy_exact_to_consume_first() {
         quantity: 5,
         owner: 3,
     };
+    println!("[*] Adding order: {}", order1);
     trading_system.handle_order(&order1);
+    println!("[*] Adding order: {}", order2);
     trading_system.handle_order(&order2);
+    println!("[*] Adding order: {}", order3);
     trading_system.handle_order(&order3);
 
     let orders = trading_system.ask_orders.get(&100).unwrap();
@@ -87,8 +93,11 @@ fn test_buy_over_to_consume_first() {
         quantity: 10,
         owner: 3,
     };
+    println!("[*] Adding order: {}", order1);
     trading_system.handle_order(&order1);
+    println!("[*] Adding order: {}", order2);
     trading_system.handle_order(&order2);
+    println!("[*] Adding order: {}", order3);
     trading_system.handle_order(&order3);
 
     let orders = trading_system.ask_orders.get(&100).unwrap();

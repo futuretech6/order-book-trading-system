@@ -43,8 +43,13 @@ impl TradingSystem {
         let mut remaining_quantity = ask_order.quantity;
 
         // iterate through the bid orders from the highest price
-        for (_price, bid_orders) in self.bid_orders.iter_mut().rev() {
-            Self::handle_order_list(bid_orders, &mut remaining_quantity);
+        for (_bid_price, bid_orders) in self
+            .bid_orders
+            .iter_mut()
+            .filter(|(&bid_price, _)| bid_price >= ask_order.price)
+            .rev()
+        {
+            Self::handle_order_list(bid_orders, &mut remaining_quantity, &ask_order.price);
             if remaining_quantity == 0 {
                 break;
             }
@@ -56,20 +61,32 @@ impl TradingSystem {
 
         // add the remaining orders to the ask_order_book
         if remaining_quantity > 0 {
-            ask_order.inform_execution(Some(ask_order.quantity - remaining_quantity));
+            ask_order.inform_execution(
+                Some(ask_order.quantity - remaining_quantity),
+                Some(ask_order.price as f64),
+            );
             let order_list_at_price = self.ask_orders.entry(ask_order.price).or_default();
             order_list_at_price.push_new(*ask_order);
         } else {
-            ask_order.inform_execution(None);
+            ask_order.inform_execution(None, Some(ask_order.price as f64));
         }
     }
 
     fn handle_bid(&mut self, bid_order: &Order) {
         let mut remaining_quantity = bid_order.quantity;
 
+        let mut execution_price_qty: u128 = 0;
+
         // iterate through the ask orders from the lowest price
-        for (_price, ask_orders) in self.ask_orders.iter_mut() {
-            Self::handle_order_list(ask_orders, &mut remaining_quantity);
+        for (ask_price, ask_orders) in self
+            .ask_orders
+            .iter_mut()
+            .filter(|(&ask_price, _)| bid_order.price >= ask_price)
+        {
+            // For bid orders, execution price is the ask price
+            let handled_quantity =
+                Self::handle_order_list(ask_orders, &mut remaining_quantity, ask_price);
+            execution_price_qty += *ask_price as u128 * handled_quantity as u128;
             if remaining_quantity == 0 {
                 break;
             }
@@ -79,29 +96,44 @@ impl TradingSystem {
         self.ask_orders
             .retain(|_price, order_list| !order_list.is_empty());
 
+        let avg_execution_price =
+            execution_price_qty as f64 / (bid_order.quantity - remaining_quantity) as f64;
+
         // add the remaining orders to the bid_order_book
         if remaining_quantity > 0 {
-            bid_order.inform_execution(Some(bid_order.quantity - remaining_quantity));
+            bid_order.inform_execution(
+                Some(bid_order.quantity - remaining_quantity),
+                Some(avg_execution_price),
+            );
             let order_list_at_price = self.bid_orders.entry(bid_order.price).or_default();
             order_list_at_price.push_new(*bid_order);
         } else {
-            bid_order.inform_execution(None);
+            bid_order.inform_execution(None, Some(avg_execution_price));
         }
     }
 
-    fn handle_order_list(order_list: &mut FifoList, quantity: &mut u64) {
+    fn handle_order_list(
+        order_list: &mut FifoList,
+        quantity: &mut u64,
+        execution_price: &u64,
+    ) -> u64 {
+        let mut handled_quantity = 0;
         while let Some(oldest_order) = order_list.oldest_mut() {
             if *quantity >= oldest_order.quantity {
+                let _executed_qty = oldest_order.quantity;
                 *quantity -= oldest_order.quantity;
-                oldest_order.inform_execution(None);
+                handled_quantity += oldest_order.quantity;
+                oldest_order.inform_execution(None, Some(*execution_price as f64));
                 order_list.pop_oldest();
             } else {
                 // no quantity remaining
-                oldest_order.inform_execution(Some(*quantity));
+                oldest_order.inform_execution(Some(*quantity), Some(*execution_price as f64));
                 oldest_order.quantity -= *quantity;
+                handled_quantity += *quantity;
                 *quantity = 0;
                 break;
             }
         }
+        handled_quantity
     }
 }
